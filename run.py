@@ -1,10 +1,12 @@
-from proxy import get, check
-from api import run_web
+from proxy_pool import get, check, run_web
+from multiprocessing import Process
+
+
 
 if __name__ == '__main__':
-    from multiprocessing import Process
-    p_list = []
+    p_list = list()
     funcs = [get, check, run_web]
+
     for f in funcs:
         p = Process(target=f)
         p_list.append(p)
