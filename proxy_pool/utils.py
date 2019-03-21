@@ -64,7 +64,7 @@ class WebRequest(object):
                     raise Exception
                 return html
             except Exception as e:
-                self.logger.error('Request error cause by: %s' % e)
+                self.logger.debug('Request error cause by: %s' % e)
                 retry_time -= 1
                 if retry_time <= 0:
                     # 多次请求失败
@@ -82,7 +82,7 @@ import logging
 
 handlers = dict()
 
-def get_logger(appname, level='DEBUG'):
+def get_logger(appname, level='INFO'):
     '''
     获取logger, 如果传入了dirname，则会将log写入到文件中
     :param appname: 自定义名称，用于区别

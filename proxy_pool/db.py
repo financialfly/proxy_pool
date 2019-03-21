@@ -98,15 +98,16 @@ class ProxySql(object):
         '''删除'''
         query = 'DELETE FROM %s WHERE proxy="%s" LIMIT 1' % (self.table, proxy)
         self._exec(query, commit=True)
-        self.logger.debug('deleted proxy %s' % proxy)
+        self.logger.info('deleted proxy %s' % proxy)
 
     def clean(self, status):
         '''清除某个状态的代理'''
         query = 'DELETE FROM %s WHERE status=%d' % (self.table, status)
         self._exec(query, commit=True)
+        self.logger.info('proxies that status is %d were cleared.' % status)
 
     def clean_all(self):
         '''清空代理池'''
         query = 'TRUNCATE TABLE %s' % self.table
         self._exec(query, commit=True)
-        self.logger.debug('all proxies were deleted.')
+        self.logger.info('all proxies were deleted.')

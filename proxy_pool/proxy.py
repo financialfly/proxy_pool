@@ -27,6 +27,7 @@ class ProxyCrawler(Thread, Proxy):
         for proxy in self.func():
             self.logger.debug('Got raw proxy %s' % proxy)
             self.proxies.append(proxy)
+        self.logger.info('got proxies %s' % self.proxies)
         self.sql.put_many(self.proxies)
 
     @property
