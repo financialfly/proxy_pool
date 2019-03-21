@@ -20,12 +20,14 @@ class ProxyCrawler(Thread, Proxy):
     '''用于封装代理爬虫的多线程类'''
     def __init__(self, crawl_func, *args, **kwargs):
         self.func = crawl_func
+        self.proxies = list()
         super().__init__(*args, **kwargs)
 
     def run(self):
         for proxy in self.func():
-            self.logger.debug('Got proxy %s' % proxy)
-            self.sql.put(proxy)
+            self.logger.debug('Got raw proxy %s' % proxy)
+            self.proxies.append(proxy)
+        self.sql.put_many(self.proxies)
 
     @property
     def logger(self):

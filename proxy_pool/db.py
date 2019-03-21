@@ -59,14 +59,11 @@ class ProxySql(object):
 
     def put_many(self, proxies, status=0):
         '''把一些代理放进代理池'''
-        query = 'INSERT INTO %s (proxy, status) VALUES' % self.table
+        query = 'INSERT IGNORE INTO %s (proxy, status) VALUES' % self.table
         for proxy in proxies:
             value = '("%s", %d), ' % (proxy, status)
             query += value
-        try:
-            self._exec(query[:-2], commit=True)
-        except IntegrityError:
-            self.logger.debug('one of them already exist, maybe all of them ~~')
+        self._exec(query[:-2], commit=True)
 
     def _get(self, status, count=1):
         '''获取代理'''
