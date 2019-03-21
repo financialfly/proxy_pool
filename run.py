@@ -4,13 +4,17 @@ from multiprocessing import Process
 
 
 if __name__ == '__main__':
-    p_list = list()
+    pros = list()
     funcs = [get, check, run_web]
 
     for f in funcs:
         p = Process(target=f)
-        p_list.append(p)
+        pros.append(p)
         p.start()
 
-    for p in p_list:
+    for p in pros:
         p.join()
+    # from proxy_pool.db import ProxySql
+    # s = ProxySql()
+    # # print(s._get(1)[0][0])
+    # print(s.get())

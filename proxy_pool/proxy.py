@@ -9,7 +9,7 @@ class Proxy(object):
 
     @property
     def logger(self):
-        return get_logger('ProxyPool.%s' % self.__class__.__name__.lower().replace('proxy', ''))
+        return get_logger(self.__class__.__name__.lower().replace('proxy', ''))
 
     @property
     def sql(self):
@@ -30,4 +30,4 @@ class ProxyCrawler(Thread, Proxy):
 
     @property
     def logger(self):
-        return get_logger('ProxyPool.%s' % self.func.__name__)
+        return get_logger(self.func.__name__)

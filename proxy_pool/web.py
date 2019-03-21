@@ -5,7 +5,7 @@ from .proxy import Proxy
 class ProxyWebApi(Proxy):
 
     async def handle(self, request):
-        proxy = {'proxy': self.sql.get()}
+        proxy = {'https': self.sql.get()}
         proxy = json.dumps(proxy)
         return web.Response(text=proxy)
 

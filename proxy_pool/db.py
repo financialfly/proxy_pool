@@ -29,16 +29,17 @@ class ProxySql(object):
         self.conn.commit()
 
     def get(self):
-        return self._get(status=1)
+        return self._get(status=1)[0][0]
 
     def get_raw(self, count=1):
         proxies = self._get(status=0, count=count)
-        if count != 1:
-            proxies = [p[0] for p in proxies]
+        proxies = [p[0] for p in proxies] if count != 1 else proxies[0][0]
         return proxies
 
     def pop(self):
-        return self._get(status=1, delete=True)
+        proxy = self._get(status=1)
+        self.delete(proxy)
+        return proxy
 
     def update_useful(self, proxy):
         return self.update(proxy, status=1)
@@ -50,18 +51,11 @@ class ProxySql(object):
         except IntegrityError:
             self.logger.debug('proxy already exist')
 
-    def _get(self, status, delete=False, count=1):
+    def _get(self, status, count=1):
         query = 'SELECT proxy FROM %s WHERE status=%d LIMIT 0,%d' % (self.table, status, count)
         c = self._exec(query)
         if c.rowcount > 0:
-            if count != 1:
-                return c.fetchall()
-            proxy = c.fetchone()[0]
-            if status == 1:
-                self.update(proxy, status=2)
-            if delete:
-                self.delete(proxy)
-            return proxy
+            return c.fetchall()
         else:
             return 'Get proxy FAILED because proxy pool is empty.'
 
