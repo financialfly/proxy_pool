@@ -64,12 +64,12 @@ class WebRequest(object):
                     raise Exception
                 return html
             except Exception as e:
-                print(e)
+                self.logger.error('Request error cause by: %s' % e)
                 retry_time -= 1
                 if retry_time <= 0:
                     # 多次请求失败
                     resp = Response()
-                    resp.status_code = 200
+                    resp.status_code = 400
                     return resp
                 time.sleep(retry_interval)
 

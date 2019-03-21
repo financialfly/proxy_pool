@@ -1,15 +1,15 @@
 import json
 from aiohttp import web
 from _proxy import Proxy
-from db import CheckedProxyRedis
+from db import ProxySql
 
-class ProxyOffer(Proxy):
+class ProxyWebApi(Proxy):
 
     def __init__(self):
-        self.redis = CheckedProxyRedis()
+        self.sql = ProxySql()
 
     async def handle(self, request):
-        proxy = {'proxy': self.redis.pop()}
+        proxy = {'proxy': self.sql.pop()}
         proxy = json.dumps(proxy)
         return web.Response(text=proxy)
 
@@ -25,5 +25,5 @@ class ProxyOffer(Proxy):
         web.run_app(app)
 
 def run_web():
-    o = ProxyOffer()
-    o.run()
+    w = ProxyWebApi()
+    w.run()
