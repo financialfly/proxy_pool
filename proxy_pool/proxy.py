@@ -6,7 +6,6 @@ from .db import ProxySql
 
 class Proxy(object):
     '''基类'''
-
     @property
     def logger(self):
         return get_logger(self.__class__.__name__.lower().replace('proxy', ''))
@@ -18,7 +17,7 @@ class Proxy(object):
 
 from threading import Thread
 class ProxyCrawler(Thread, Proxy):
-
+    '''用于封装代理爬虫的多线程类'''
     def __init__(self, crawl_func, *args, **kwargs):
         self.func = crawl_func
         super().__init__(*args, **kwargs)

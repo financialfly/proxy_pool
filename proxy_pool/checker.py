@@ -5,7 +5,7 @@ from .proxy import Proxy
 from functools import partial
 
 class ProxyChecker(Proxy):
-
+    '''检查代理是否可用'''
     def __init__(self):
         self.url = 'https://httpbin.org/ip'
         super().__init__()

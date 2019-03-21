@@ -8,7 +8,7 @@ class WebRequest(object):
 
     @property
     def logger(self):
-        return get_logger('ProxyPool.request')
+        return get_logger('request')
 
     @property
     def user_agent(self):

@@ -1,14 +1,14 @@
 import time
 from .getter import crawl_funcs
 from .checker import ProxyChecker
-from .settings import LOWER_LIMIT
+from .settings import LOWER_LIMIT, UPPER_LIMIT
 from .proxy import ProxyCrawler, Proxy
 
 class ProxyScheduler(Proxy):
-
+    '''调度器'''
     def get_proxy(self, interval=5):
         while True:
-            if self.sql.length < LOWER_LIMIT and self.sql.raw_length < 200:
+            if not self.sql.length > UPPER_LIMIT and self.sql.raw_length < LOWER_LIMIT:
                 for func in crawl_funcs():
                     crawler = ProxyCrawler(func)
                     crawler.run()
