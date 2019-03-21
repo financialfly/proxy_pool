@@ -1,7 +1,9 @@
 import pymysql
 from pymysql.cursors import Cursor
 from pymysql.err import IntegrityError
-from utils import get_logger
+
+from .utils import get_logger
+from .settings import HOST, PORT, PASSWORD, USER, DATABASE, TABLE
 
 class ProxySql(object):
     '''
@@ -10,13 +12,14 @@ class ProxySql(object):
     '''
     def __init__(self):
         self.conn = pymysql.connect(
-            host='localhost',
-            port=3306,
-            user='root',
-            password='1234',
-            database='lzz'
+            host=HOST,
+            port=PORT,
+            user=USER,
+            password=PASSWORD,
+            database=DATABASE
         )
-        self.logger = get_logger('sql')
+        self.logger = get_logger('ProxyPool.sql')
+        self.table = TABLE
 
     def _exec(self, query, cursor=Cursor, commit=False):
         with self.conn.cursor(cursor) as c:
@@ -41,14 +44,14 @@ class ProxySql(object):
         return self.update(proxy, status=1)
 
     def put(self, proxy, status=0):
-        query = 'INSERT INTO proxies (proxy, status) VALUES("%s", %d)' % (proxy, status)
+        query = 'INSERT INTO %s (proxy, status) VALUES("%s", %d)' % (self.table, proxy, status)
         try:
             self._exec(query, commit=True)
         except IntegrityError:
             self.logger.debug('proxy already exist')
 
     def _get(self, status, delete=False, count=1):
-        query = 'SELECT proxy FROM proxies WHERE status=%d LIMIT 0,%d' % (status, count)
+        query = 'SELECT proxy FROM %s WHERE status=%d LIMIT 0,%d' % (self.table, status, count)
         c = self._exec(query)
         if c.rowcount > 0:
             if count != 1:
@@ -71,24 +74,24 @@ class ProxySql(object):
         return self._length(status=0)
 
     def _length(self, status):
-        query = 'SELECT COUNT(proxy) FROM proxies WHERE status=%d' % status
+        query = 'SELECT COUNT(proxy) FROM %s WHERE status=%d' % (self.table, status)
         c = self._exec(query)
         return c.fetchone()[0]
 
     def update(self, proxy, status):
-        query = 'UPDATE proxies SET status=%d WHERE proxy="%s" LIMIT 1' % (status, proxy)
+        query = 'UPDATE %s SET status=%d WHERE proxy="%s" LIMIT 1' % (self.table, status, proxy)
         self._exec(query, commit=True)
 
     def delete(self, proxy):
-        query = 'DELETE FROM proxies WHERE proxy="%s" LIMIT 1' % proxy
+        query = 'DELETE FROM %s WHERE proxy="%s" LIMIT 1' % (self.table, proxy)
         self._exec(query, commit=True)
         self.logger.debug('deleted proxy %s' % proxy)
 
     def clean(self, status):
-        query = 'DELETE FROM proxies WHERE status=%d' % status
+        query = 'DELETE FROM %s WHERE status=%d' % (self.table, status)
         self._exec(query, commit=True)
 
     def clean_all(self):
-        query = 'TRUNCATE TABLE proxies'
+        query = 'TRUNCATE TABLE %s' % self.table
         self._exec(query, commit=True)
         self.logger.debug('all proxies were deleted.')
