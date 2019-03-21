@@ -18,7 +18,7 @@ class ProxySql(object):
             password=PASSWORD,
             database=DATABASE
         )
-        self.logger = get_logger('ProxyPool.sql')
+        self.logger = get_logger('sql')
         self.table = TABLE
 
     def _exec(self, query, cursor=Cursor, commit=False):
@@ -66,7 +66,7 @@ class ProxySql(object):
         try:
             self._exec(query[:-2], commit=True)
         except IntegrityError:
-            self.logger.debug('one of them already exist')
+            self.logger.debug('one of them already exist, maybe all of them ~~')
 
     def _get(self, status, count=1):
         '''获取代理'''
