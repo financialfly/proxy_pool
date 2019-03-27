@@ -4,10 +4,9 @@ from .proxy import Proxy
 
 class ProxyWebApi(Proxy):
     '''路由接口'''
-    async def handle(self, request):
-        proxy = {'https': self.sql.pop()}
-        proxy = json.dumps(proxy)
-        return web.Response(text=proxy)
+    async def get_proxy(self, request):
+        proxy = self.sql.pop()
+        return web.Response(text=proxy.json())
 
     async def welcome(self, request):
         text = 'Welcome! go to "./get" to get a proxy'
@@ -16,7 +15,7 @@ class ProxyWebApi(Proxy):
     def run(self):
         app = web.Application()
         app.add_routes([web.get('/', self.welcome),
-                        web.get('/get', self.handle)])
+                        web.get('/get', self.get_proxy)])
         web.run_app(app)
 
 def web_app():
