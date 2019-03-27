@@ -1,3 +1,4 @@
+import json
 import pymysql
 from pymysql.cursors import Cursor
 from pymysql.err import IntegrityError
@@ -5,10 +6,32 @@ from pymysql.err import IntegrityError
 from .utils import get_logger
 from .settings import HOST, PORT, PASSWORD, USER, DATABASE, TABLE
 
+class _Proxy(object):
+    '''代理'''
+    __slots__ = ['type', 'addr']
+
+    def __init__(self, iptype, ipaddr):
+        super().__init__()
+        self.type = iptype.lower()
+        self.addr = ipaddr.strip()
+
+    def __repr__(self):
+        return '%s' % {self.type: self.addr}
+
+    def json(self):
+        return json.dumps({self.type: self.addr})
+
+    def dict(self):
+        return {self.type: self.addr}
+
+def formproxy(iptype, ipaddr):
+    return _Proxy(iptype, ipaddr)
+
 class ProxySql(object):
     '''
     状态值
     0未验证，1通过验证未使用，2已使用
+    proxy[0],proxy[1] 对应 type, addr， 如http,127.0.0.1:2555
     '''
     def __init__(self):
         self.conn = pymysql.connect(
@@ -31,17 +54,19 @@ class ProxySql(object):
 
     def get(self):
         '''获取一条代理数据'''
-        return self._get(status=1)[0][0]
+        proxy = self._get(status=1)[0]
+        return formproxy(proxy[0], proxy[1])
 
     def get_raw(self, count=1):
         '''获取没有经过验证的代理'''
         proxies = self._get(status=0, count=count)
-        proxies = [p[0] for p in proxies] if count != 1 else proxies[0][0]
-        return proxies
+        proxies = [formproxy(p[0], p[1]) for p in proxies]
+        return proxies[0] if count == 1 else proxies
 
     def pop(self):
         '''获取一条代理，并从数据库删除'''
-        proxy = self._get(status=1)
+        proxy = self._get(status=1)[0]
+        proxy = formproxy(proxy[0], proxy[1])
         self.delete(proxy)
         return proxy
 
@@ -49,25 +74,29 @@ class ProxySql(object):
         '''更新经过验证的代理状态'''
         return self.update(proxy, status=1)
 
-    def put(self, proxy, status=0):
+    def put(self, proxy):
         '''把代理放进数据库'''
-        query = 'INSERT INTO %s (proxy, status) VALUES("%s", %d)' % (self.table, proxy, status)
+        query = 'INSERT INTO %s (type, proxy) VALUES("%s", "%s")' % (self.table, proxy.type, proxy.addr)
         try:
             self._exec(query, commit=True)
         except IntegrityError:
             self.logger.debug('proxy already exist')
 
-    def put_many(self, proxies, status=0):
+    def put_many(self, proxies):
         '''把一些代理放进代理池'''
-        query = 'INSERT IGNORE INTO %s (proxy, status) VALUES' % self.table
+        query = 'INSERT IGNORE INTO %s (type, proxy) VALUES' % self.table
         for proxy in proxies:
-            value = '("%s", %d), ' % (proxy, status)
+            value = '("%s", "%s"), ' % (proxy.type, proxy.addr)
             query += value
-        self._exec(query[:-2], commit=True)
+        # 有的时候代理为空，会报错
+        try:
+            self._exec(query[:-2], commit=True)
+        except:
+            pass
 
     def _get(self, status, count=1):
         '''获取代理'''
-        query = 'SELECT proxy FROM %s WHERE status=%d LIMIT 0,%d' % (self.table, status, count)
+        query = 'SELECT type, proxy FROM %s WHERE status=%d LIMIT 0,%d' % (self.table, status, count)
         c = self._exec(query)
         if c.rowcount > 0:
             return c.fetchall()
@@ -91,12 +120,12 @@ class ProxySql(object):
 
     def update(self, proxy, status):
         '''更新'''
-        query = 'UPDATE %s SET status=%d WHERE proxy="%s" LIMIT 1' % (self.table, status, proxy)
+        query = 'UPDATE %s SET status=%d WHERE proxy="%s" LIMIT 1' % (self.table, status, proxy.addr)
         self._exec(query, commit=True)
 
     def delete(self, proxy):
         '''删除'''
-        query = 'DELETE FROM %s WHERE proxy="%s" LIMIT 1' % (self.table, proxy)
+        query = 'DELETE FROM %s WHERE proxy="%s" LIMIT 1' % (self.table, proxy.addr)
         self._exec(query, commit=True)
         self.logger.info('deleted proxy %s' % proxy)
 
