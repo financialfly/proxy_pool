@@ -39,26 +39,28 @@ class ProxyGetter(Proxy):
         '''云代理'''
         url = 'http://www.ip3366.net/free/?stype=1&page=1'
         r = get_html(url)
-        ip = re.compile(r'<td>(.*?)</td>\s*<td>(\w+)</td>\s*<td>(.*?)</td>\s*<td>(\w+)</td>')
-        iplist = ip.findall(r.content.decode('gb2312'))
-        for addr, port, anonymity, iptype in iplist:
-            if not anonymity.startswith('高匿'):
-                continue
-            result = '%s:%s' %(addr, port)
-            yield formproxy(iptype, result)
+        if r:
+            ip = re.compile(r'<td>(.*?)</td>\s*<td>(\w+)</td>\s*<td>(.*?)</td>\s*<td>(\w+)</td>')
+            iplist = ip.findall(r.content.decode('gb2312'))
+            for addr, port, anonymity, iptype in iplist:
+                if not anonymity.startswith('高匿'):
+                    continue
+                result = '%s:%s' %(addr, port)
+                yield formproxy(iptype, result)
 
     def crawl_qydaili(self):
         '''旗云代理'''
         urls = ['http://www.qydaili.com/free/?action=china&page=%d' % x for x in range(1, 5)]
         for url in urls:
             r = get_html(url)
-            ip = re.compile(r'<td data-title="IP">(.*?)</td>\s*<td data-title="PORT">(\w+)</td>\s*<td data-title="匿名度">(.*?)</td>\s*<td data-title="类型">(.*?)</td>')
-            iplist = ip.findall(r.text)
-            for addr, port, anonymity, iptype in iplist:
-                if not anonymity == '高匿':
-                    continue
-                result = '%s:%s' %(addr, port)
-                yield formproxy(iptype, result)
+            if r:
+                ip = re.compile(r'<td data-title="IP">(.*?)</td>\s*<td data-title="PORT">(\w+)</td>\s*<td data-title="匿名度">(.*?)</td>\s*<td data-title="类型">(.*?)</td>')
+                iplist = ip.findall(r.text)
+                for addr, port, anonymity, iptype in iplist:
+                    if not anonymity == '高匿':
+                        continue
+                    result = '%s:%s' %(addr, port)
+                    yield formproxy(iptype, result)
 
 def crawl_funcs():
     '''获取爬虫函数'''
