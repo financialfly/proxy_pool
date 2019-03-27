@@ -1,3 +1,10 @@
+'''
+代理池
+'''
+
+__author__ = 'financial'
+
+
 from .scheduler import ProxyScheduler
 from .web import ProxyWebApi
 
