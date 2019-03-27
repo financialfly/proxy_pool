@@ -14,7 +14,6 @@ class Proxy(object):
     def sql(self):
         return ProxySql()
 
-
 from threading import Thread
 class ProxyCrawler(Thread, Proxy):
     '''用于封装代理爬虫的多线程类'''
