@@ -52,9 +52,9 @@ class ProxySql(object):
                 return c
         self.conn.commit()
 
-    def get(self):
+    def get(self, iptype=None):
         '''获取一条代理数据'''
-        proxy = self._get(status=1)[0]
+        proxy = self._get(status=1, iptype=iptype)[0]
         return formproxy(proxy[0], proxy[1])
 
     def get_raw(self, count=1):
@@ -63,9 +63,9 @@ class ProxySql(object):
         proxies = [formproxy(p[0], p[1]) for p in proxies]
         return proxies[0] if count == 1 else proxies
 
-    def pop(self):
+    def pop(self, iptype=None):
         '''获取一条代理，并从数据库删除'''
-        proxy = self._get(status=1)[0]
+        proxy = self._get(status=1, iptype=iptype)[0]
         proxy = formproxy(proxy[0], proxy[1])
         self.delete(proxy)
         return proxy
@@ -94,9 +94,11 @@ class ProxySql(object):
         except:
             pass
 
-    def _get(self, status, count=1):
+    def _get(self, status, count=1, iptype=None):
         '''获取代理'''
         query = 'SELECT type, proxy FROM %s WHERE status=%d LIMIT 0,%d' % (self.table, status, count)
+        if iptype:
+            query = 'SELECT type, proxy FROM %s WHERE status=%d AND type="%s" LIMIT 0,%d' %(self.table, status, iptype, count)
         c = self._exec(query)
         if c.rowcount > 0:
             return c.fetchall()
