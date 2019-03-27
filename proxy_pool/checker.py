@@ -1,4 +1,5 @@
 import asyncio
+import re
 
 from .utils import get_html
 from .proxy import Proxy
@@ -7,25 +8,27 @@ from functools import partial
 class ProxyChecker(Proxy):
     '''检查代理是否可用'''
     def __init__(self):
-        self.url = 'https://httpbin.org/ip'
+        self.httpsurl = 'https://httpbin.org/ip'
+        self.httpurl = 'http://2019.ip138.com/ic.asp'
         super().__init__()
 
     async def _check(self, proxy):
-        _proxy = self.get_proxy(proxy)
+        url = self.httpurl if proxy.type == 'http' else self.httpsurl
         loop = asyncio.get_event_loop()
-        future = loop.run_in_executor(None, partial(get_html, self.url, proxies=_proxy, retry_time=1, timeout=5))
+        future = loop.run_in_executor(None,
+                                      partial(get_html, url, proxies=proxy.dict(), retry_time=1, timeout=5))
         r = await future
         if r.status_code == 200:
-            result = r.json()
-            self.logger.debug('current ip is %s' % result['origin'])
+            if url == self.httpurl:
+                current_ip = re.search(r'您的IP是：\[(.*?)\]', r.content.decode('gb2312')).group(1)
+            else:
+                current_ip = r.json()['origin']
+            self.logger.debug('Current ip is %s' % current_ip)
             self.sql.update_useful(proxy)
             self.logger.info('Got valid proxy %s' % proxy)
         else:
             self.logger.debug('invalid proxy %s' % proxy)
             self.sql.delete(proxy)
-
-    def get_proxy(self, proxy):
-        return {'https': proxy}
 
     def _run(self, proxy=None, proxies=None):
         if proxy and proxies:
