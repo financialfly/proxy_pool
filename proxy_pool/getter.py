@@ -62,6 +62,13 @@ class ProxyGetter(Proxy):
                     result = '%s:%s' %(addr, port)
                     yield formproxy(iptype, result)
 
+    # @classmethod
+    # def get_funcs(cls):
+    # '''获取爬虫函数'''
+    #     g = cls()
+    #     funcs =  [x for x in dir(g) if 'crawl' in x]
+    #     return [getattr(g, f) for f in funcs]
+
 def crawl_funcs():
     '''获取爬虫函数'''
     g = ProxyGetter()
