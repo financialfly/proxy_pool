@@ -1,4 +1,3 @@
-import json
 from aiohttp import web
 from .proxy import Proxy
 
@@ -6,7 +5,7 @@ class ProxyWebApi(Proxy):
     '''路由接口'''
     async def get(self, request):
         data = await request.post()
-        proxy = self.sql.pop() if not data else self.sql.get(iptype=data.get('type'))
+        proxy = self.sql.pop() if not data else self.sql.pop(iptype=data.get('type'))
         return web.Response(text=proxy.json())
 
     async def welcome(self, request):

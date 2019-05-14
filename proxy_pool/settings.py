@@ -7,5 +7,5 @@ DATABASE = 'lzz'
 TABLE = 'proxies'
 
 # 代理池设置
-LOWER_LIMIT = 60
-UPPER_LIMIT = 80
+LOWER_LIMIT = 100
+UPPER_LIMIT = 200
