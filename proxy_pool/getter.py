@@ -11,7 +11,7 @@ class ProxyGetter(Proxy):
             ('https://www.kuaidaili.com/free/inha/1/', self.crawl_kuaidaili),
             ('http://www.data5u.com/free/gngn/index.shtml', self.crawl_data5u),
             ('http://www.ip3366.net/free/?stype=1&page=1', self.crawl_ip3366),
-            (['http://www.qydaili.com/free/?action=china&page=%d' % x for x in range(1, 5)], self.crawl_qydaili)
+            (['http://www.qydaili.com/free/?action=china&page=%d' % x for x in range(1, 5)], self.crawl_qydaili),
         ]
         return routes
 
@@ -24,11 +24,12 @@ class ProxyGetter(Proxy):
         '''快代理'''
         r = get_html(url)
         if r:
-            ip = re.compile(r'td data-title="IP">(.*?)</td>\s*<td data-title="PORT">(\w+)</td>\s*<td data-title="匿名度">(.*?)</td>\s*<td data-title="类型">(.*?)</td>')
-            iplist = ip.findall(r.text)
-            for adress, port, anonymity, iptype in iplist:
-                if not anonymity == '高匿名':
-                    continue
+            proxies = re.findall(r'<td data-title="IP">(.*?)</td>\s*' # 地址
+                                 r'<td data-title="PORT">(\d+)</td>\s*' # 端口
+                                 r'<td data-title="匿名度">高匿名</td>\s*'
+                                 r'<td data-title="类型">(\w+)</td>', # 类型
+                                 r.text)
+            for adress, port, iptype in proxies:
                 result = adress + ':' + port
                 yield formproxy(iptype, result)
 
