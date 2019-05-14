@@ -1,5 +1,5 @@
 import time
-from .getter import ProxyGetter
+from .getter import routes
 from .checker import ProxyChecker
 from .settings import LOWER_LIMIT, UPPER_LIMIT
 from .proxy import ProxyCrawler, Proxy
@@ -14,7 +14,7 @@ class ProxyScheduler(Proxy):
         while True:
             logger.info('Now valid proxies count is {}'.format(cls.sql.length))
             if cls.sql.length < UPPER_LIMIT:
-                for route in ProxyGetter.get_crawl_routes():
+                for route in routes():
                     crawler = ProxyCrawler(route)
                     crawler.run()
             else:
