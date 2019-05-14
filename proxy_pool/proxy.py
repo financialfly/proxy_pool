@@ -23,13 +23,13 @@ class ProxyCrawler(Thread, Proxy):
 
     def run(self):
         for proxy in self.func(self.url):
-            self.logger.info('Got raw proxy %s' % proxy)
+            # self.logger.info('Got raw proxy %s' % proxy)
             self.proxies.append(proxy)
         if not self.proxies:
             self.logger.error('Not found ang proxy, maybe you should check the parse rules')
         else:
             self.sql.put_many(self.proxies)
-            self.logger.info('Raw proxies saved.')
+            self.logger.info('Raw proxies saved: {}'.format(','.join(self.proxies)))
 
     @property
     def logger(self):
