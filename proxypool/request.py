@@ -6,7 +6,7 @@ import random
 import requests
 import types
 from functools import partial
-from proxypool.utils import get_logger
+from proxypool.logger import get_logger
 
 class Request(object):
     user_agents = [
@@ -55,7 +55,7 @@ class Crawler(object):
         self.logger = logger if logger else get_logger('Crawler')
 
     async def get_html(self, request):
-        self.logger.info('Crawling {}'.format(request.url))
+        self.logger.debug('Crawling {}'.format(request.url))
         future = self.loop.run_in_executor(None,
                                            partial(requests.get,
                                                    request.url,
@@ -81,15 +81,19 @@ class Crawler(object):
             r.status_code, r.url = 404, request.url
 
         self.logger.info('[%d] Scraped from %s' % (r.status_code, r.url))
-        result = request.callback(r)
-        if not isinstance(result, types.GeneratorType):
+        results = request.callback(r)
+        if not results:
             return
-        for result in request.callback(r):
-            if isinstance(result, Request):
-                self.requests.append(result)
+        proxy_results = list()
+        for x in results:
+            if isinstance(x, Request):
+                self.requests.append(x)
             else:
-                if self.result_callback:
-                    self.result_callback(result)
+                proxy_results.append(x)
+                # if self.result_callback:
+                #     self.result_callback(result)
+        if self.result_callback and proxy_results:
+            self.result_callback(proxy_results)
 
     def run(self):
         while self.requests:
