@@ -7,9 +7,9 @@ class ProxyWebApp(object):
     async def get(self, request):
         data = await request.post()
         # todo 待改进
-        sql = DbClient()
-        proxy = sql.pop() if not data else sql.pop(iptype=data.get('type'))
-        sql.close()
+        db = DbClient()
+        proxy = db.pop() if not data else db.pop(iptype=data.get('type'))
+        db.close()
         return web.Response(text=proxy.json())
 
     async def welcome(self, request):
