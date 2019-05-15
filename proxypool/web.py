@@ -1,11 +1,15 @@
 from aiohttp import web
-from .proxy import Proxy
+from .db import DbClient
 
-class ProxyWebApi(Proxy):
-    '''路由接口'''
+class ProxyWebApp(object):
+    '''网络接口'''
+
     async def get(self, request):
         data = await request.post()
-        proxy = self.sql.pop() if not data else self.sql.pop(iptype=data.get('type'))
+        # todo 待改进
+        sql = DbClient()
+        proxy = sql.pop() if not data else sql.pop(iptype=data.get('type'))
+        sql.close()
         return web.Response(text=proxy.json())
 
     async def welcome(self, request):
@@ -18,7 +22,3 @@ class ProxyWebApi(Proxy):
                         web.get('/get', self.get),
                         web.post('/get', self.get)])
         web.run_app(app)
-
-def web_app():
-    w = ProxyWebApi()
-    w.run()
