@@ -3,12 +3,14 @@ from pymysql.cursors import Cursor
 from pymysql.err import IntegrityError
 
 from proxypool.proxy import formproxy
-from proxypool.utils import get_logger
+from proxypool.logger import get_logger
 from proxypool.settings import HOST, PORT, PASSWORD, USER, DATABASE
 
 try:
     from proxypool.settings import TABLE
 except NameError:
+    TABLE = None
+except ImportError:
     TABLE = None
 
 class MySqlClient(object):
@@ -25,26 +27,26 @@ class MySqlClient(object):
             password=PASSWORD,
             database=DATABASE
         )
-        self.conn = self.get_conn()
         self.logger = get_logger('db')
-        self.table = TABLE
-        if not self.table:
+        self.conn = self.get_conn()
+
+        if not TABLE:
             self.create_table()
+        else:
+            self.table = TABLE
 
     def create_table(self):
         query = '''
-                CREATE TABLE proxies(
-                    proxy VARCHAR(50) PRIMARY KEY,
-                    status TINYINT NOT NULL COMMENT '0未验证，1通过验证，2未通过验证，3已使用'
-                    type VARCHAR(20) COMMENT 'http/https',
-                    INDEX proxy_index (proxy)
-                    )
-                '''
+            CREATE TABLE IF NOT EXISTS proxies(
+            proxy VARCHAR(50) PRIMARY KEY, 
+            status TINYINT NOT NULL DEFAULT 0 COMMENT '0未验证，1通过验证，2未通过验证，3已使用', 
+            type VARCHAR(20) COMMENT 'http/https',
+            INDEX proxy_index (proxy))'''
         self.exec(query)
         self.table = 'proxies'
 
     def get_conn(self, **kwargs):
-        print('Getting connection from MySql...')
+        self.logger.debug('Getting connection from MySql...')
         retry_times = 3
         while retry_times > 0:
             try:
@@ -119,20 +121,25 @@ class MySqlClient(object):
             query = 'SELECT type, proxy FROM %s WHERE status=%d AND type="%s" LIMIT %d' %(self.table, status, iptype, count)
         return self.runQuery(query)
 
-    @property
-    def length(self):
-        '''有用代理的数量'''
-        return self._length(status=1)
-
-    @property
-    def raw_length(self):
-        '''未经验证的代理数量'''
-        return self._length(status=0)
-
-    def _length(self, status):
-        query = 'SELECT COUNT(proxy) FROM %s WHERE status=%d' % (self.table, status)
-        result = self.runQuery(query)
-        return result[0][0]
+    def count(self, query_checked=True):
+        '''
+        因为同一连接接连查询返回的结果是一样的，所以需要创建一个新连接用来查询
+        '''
+        query = 'SELECT COUNT(proxy) FROM %s WHERE status=%d' # % (self.table, status)
+        new_conn = self.get_conn()
+        with new_conn.cursor() as cursor:
+            # 未验证的代理数量
+            cursor.execute(query % (self.table, 0))
+            uncheck_count = cursor.fetchone()[0]
+            # 已经验证的代理数量
+            if query_checked:
+                cursor.execute(query % (self.table, 1))
+                checked_count = cursor.fetchone()[0]
+                new_conn.close()
+                return uncheck_count, checked_count
+            else:
+                new_conn.close()
+                return uncheck_count
 
     def update(self, proxy, status):
         '''更新'''
@@ -143,7 +150,7 @@ class MySqlClient(object):
         '''删除'''
         query = 'DELETE FROM %s WHERE proxy="%s"' % (self.table, proxy.addr)
         self.exec(query)
-        self.logger.info('Deleted proxy %s' % proxy)
+        self.logger.debug('Deleted proxy %s' % proxy)
 
     def clean(self, status):
         '''清除某个状态的代理'''
