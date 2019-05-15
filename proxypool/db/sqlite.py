@@ -1,7 +1,7 @@
 import sqlite3
 
 from proxypool.proxy import formproxy
-from proxypool.utils import get_logger
+from proxypool.logger import get_logger
 
 class Cursor(object):
 
