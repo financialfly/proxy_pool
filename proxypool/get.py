@@ -3,14 +3,14 @@ import re
 from .db import DbClient
 from .proxy import formproxy
 from .request import Request, Crawler
-from .utils import get_logger
+from .logger import get_logger
 
 logger = get_logger('ProxyGetter')
 
 class ProxyGetter(object):
 
     def __init__(self):
-        self.sql = DbClient()
+        self.db = DbClient()
         self.crawler = Crawler(requests=None, logger=logger, result_callback=self.process_proxy)
 
     @property
@@ -25,16 +25,16 @@ class ProxyGetter(object):
 
     def process_proxy(self, proxy):
         '''处理结果'''
+        logger.info('Got new proxies: {}'.format(proxy))
         if isinstance(proxy, list):
-            self.sql.put_many(proxy)
+            self.db.put_many(proxy)
         else:
-            self.sql.put(proxy)
+            self.db.put(proxy)
 
     def get(self):
         reqs = [Request(url=route[0], callback=route[1]) for route in self.routes]
         self.crawler.requests = reqs
         self.crawler.run()
-
 
 def crawl_kuaidaili(response):
     '''快代理'''
