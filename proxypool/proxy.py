@@ -1,6 +1,6 @@
 import json
 
-class _Proxy(object):
+class Proxy(object):
     '''代理'''
     __slots__ = ['type', 'addr']
 
@@ -15,9 +15,9 @@ class _Proxy(object):
         return {self.type: self.addr}
 
     def __str__(self):
-        return '%s' % {self.type: self.addr}
+        return  '%s://%s' % (self.type, self.addr)
 
     __repr__ = __str__
 
 def formproxy(iptype, ipaddr):
-    return _Proxy(iptype, ipaddr)
+    return Proxy(iptype, ipaddr)
