@@ -4,7 +4,7 @@
 import asyncio
 import random
 import requests
-import types
+# import types
 from functools import partial
 from proxypool.logger import get_logger
 
@@ -49,6 +49,12 @@ class Request(object):
 class Crawler(object):
 
     def __init__(self, requests, result_callback=None, logger=None):
+        '''
+        初始化crawler
+        :param requests: Request请求列表
+        :param result_callback: 请求结束后的结果处理回调函数
+        :param logger: logger
+        '''
         self.requests = requests
         self.loop = asyncio.get_event_loop()
         self.result_callback = result_callback
@@ -80,7 +86,7 @@ class Crawler(object):
             r.meta = request.meta
             r.status_code, r.url = 404, request.url
 
-        self.logger.info('[%d] Scraped from %s' % (r.status_code, r.url))
+        self.logger.debug('[%d] Scraped from %s' % (r.status_code, r.url))
         results = request.callback(r)
         if not results:
             return
