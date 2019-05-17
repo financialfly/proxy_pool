@@ -3,7 +3,7 @@ HOST = 'localhost'
 PORT = 3306
 USER = 'root'
 PASSWORD = '1234'
-DATABASE = 'proxies'
+DATABASE = 'spider'
 TABLE = 'proxies'
 
 # 代理池设置
