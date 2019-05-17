@@ -1,9 +1,9 @@
+import async_request
 import re
 
 from .db import DbClient
-from .proxy import formproxy
-from .request import Request, Crawler
-from .logger import get_logger
+from .proxy import formproxy, ProxyCrawler
+from .logs import get_logger
 
 logger = get_logger('ProxyGetter')
 
@@ -11,15 +11,16 @@ class ProxyGetter(object):
 
     def __init__(self):
         self.db = DbClient()
-        self.crawler = Crawler(requests=None, logger=logger, result_callback=self.process_proxy)
+        self.crawler = ProxyCrawler(requests=None, logger=logger, result_callback=self.process_proxy)
 
     @property
     def routes(self):
         routes = [
-            ('https://www.kuaidaili.com/free/inha/1/', crawl_kuaidaili),  # 快代理
-            ('http://www.data5u.com/free/gngn/index.shtml', crawl_data5u),  # 无忧代理
-            ('http://www.ip3366.net/free/?stype=1&page=1', crawl_ip3366),  # 云代理
-            ('http://www.qydaili.com/free/?action=china&page=1', crawl_qydaili),  # 旗云代理
+            ('https://www.kuaidaili.com/free/inha/1/', parse_kuaidaili),  # 快代理
+            ('http://www.data5u.com/free/gngn/index.shtml', parse_data5u),  # 无忧代理
+            ('http://www.ip3366.net/free/?stype=1&page=1', parse_ip3366),  # 云代理
+            ('http://www.qydaili.com/free/?action=china&page=1', parse_qydaili),  # 旗云代理
+            # ('https://proxy.mimvp.com/free.php?proxy=out_hp', )
         ]
         return routes
 
@@ -32,11 +33,11 @@ class ProxyGetter(object):
             self.db.put(proxy)
 
     def get(self):
-        reqs = [Request(url=route[0], callback=route[1]) for route in self.routes]
+        reqs = [async_request.Request(url=route[0], callback=route[1]) for route in self.routes]
         self.crawler.requests = reqs
-        self.crawler.run()
+        self.crawler.run(close_eventloop=False)
 
-def crawl_kuaidaili(response):
+def parse_kuaidaili(response):
     '''快代理'''
     proxies = re.findall(r'<td data-title="IP">(.*?)</td>\s*' # 地址
                          r'<td data-title="PORT">(\d+)</td>\s*' # 端口
@@ -45,7 +46,7 @@ def crawl_kuaidaili(response):
                          response.text)
     return [formproxy(iptype, '%s:%s' %(address, port)) for address, port, iptype in proxies]
 
-def crawl_data5u(response):
+def parse_data5u(response):
     '''无忧代理'''
     proxies = re.findall(r'<span><li>(.*?)</li></span>\s*' # 地址
                     r'<span style="width: 100px;"><li class="port \w+">(\d+)</li></span>\s*' # 端口
@@ -54,13 +55,13 @@ def crawl_data5u(response):
                          response.text)
     return [formproxy(iptype, '%s:%s' % (address, port)) for address, port, iptype in proxies]
 
-def crawl_ip3366(response):
+def parse_ip3366(response):
     '''云代理'''
     proxies = re.findall(r'<td>(.*?)</td>\s*<td>(\w+)</td>\s*<td>高匿代理IP</td>\s*<td>(\w+)</td>',
                          response.content.decode('gb2312'))
     return [formproxy(iptype, '%s:%s' % (address, port)) for address, port, iptype in proxies]
 
-def crawl_qydaili(response):
+def parse_qydaili(response):
     '''旗云代理'''
     proxies = re.findall(r'<td data-title="IP">(.*?)</td>\s*'
                     r'<td data-title="PORT">(\w+)</td>\s*'
