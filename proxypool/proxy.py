@@ -47,7 +47,7 @@ class ProxyCrawler(async_request.Crawler):
                 response = await future
                 break
             except Exception as e:
-                self.logger.debug('Error happen when crawling %s' % request.url)
+                self.logger.info('Error happen when crawling %s' % request.url)
                 self.logger.error(e)
                 request.retry_times -= 1
                 self.logger.debug('Retrying %s' % request.url)
