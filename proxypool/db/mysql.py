@@ -3,7 +3,7 @@ from pymysql.cursors import Cursor
 from pymysql.err import IntegrityError
 
 from proxypool.proxy import formproxy
-from proxypool.logger import get_logger
+from proxypool.logs import get_logger
 from proxypool.settings import HOST, PORT, PASSWORD, USER, DATABASE
 
 try:
@@ -85,7 +85,10 @@ class MySqlClient(object):
 
     def pop(self, iptype=None):
         '''获取一条代理，并从数据库删除'''
-        proxy = self._get(status=1, iptype=iptype)[0]
+        try:
+            proxy = self._get(status=1, iptype=iptype)[0]
+        except IndexError:
+            return
         proxy = formproxy(proxy[0], proxy[1])
         self.delete(proxy)
         return proxy
