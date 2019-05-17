@@ -2,7 +2,7 @@ import time
 from .get import ProxyGetter
 from .check import ProxyChecker
 from .settings import LOWER_LIMIT, UPPER_LIMIT, INTERVAL_TIME
-from .logger import get_logger
+from .logs import get_logger
 from .web import ProxyWebApp
 from multiprocessing import Process
 
