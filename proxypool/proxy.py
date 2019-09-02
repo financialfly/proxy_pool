@@ -16,6 +16,12 @@ class Proxy(object):
     def dict(self):
         return {self.type: self.addr}
 
+    @classmethod
+    def fromstr(cls, p):
+        iptype, addr = p.split('://')
+        proxy = cls(iptype, addr)
+        return proxy
+
     def __str__(self):
         return  '%s://%s' % (self.type, self.addr)
 
