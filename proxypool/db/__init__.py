@@ -1,4 +1,4 @@
-from .mysql import MySqlClient
-from .sqlite import SqliteClient
+from proxypool.db.mysql import MySqlClient
+
 
 DbClient = MySqlClient

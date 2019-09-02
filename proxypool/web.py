@@ -1,15 +1,26 @@
 from aiohttp import web
-from .db import DbClient
+from proxypool.db import DbClient
+
 
 class ProxyWebApp(object):
     '''网络接口'''
 
+    def __init__(self):
+        self._db = None
+
+    def __del__(self):
+        if self._db is not None:
+            self._db.close()
+
+    @property
+    def db(self):
+        if self._db is None:
+            self._db = DbClient()
+        return self._db
+
     async def get(self, request):
         data = await request.post()
-        # todo 待改进
-        db = DbClient()
-        proxy = db.pop() if not data else db.pop(iptype=data.get('type'))
-        db.close()
+        proxy = self.db.pop() if not data else self.db.pop(iptype=data.get('type'))
         return web.Response(text=proxy.json())
 
     async def welcome(self, request):

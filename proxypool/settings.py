@@ -4,7 +4,7 @@ PORT = 3306
 USER = 'root'
 PASSWORD = '1234'
 DATABASE = 'spider'
-TABLE = 'proxies'
+TABLE = 'proxypool'
 
 # 代理池设置
 LOWER_LIMIT = 20

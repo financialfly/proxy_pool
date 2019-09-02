@@ -4,7 +4,8 @@
 
 __author__ = 'financial'
 
+from proxypool import scheduler
+
+
 def run():
-    from .scheduler import Scheduler
-    s = Scheduler()
-    s.start()
+    scheduler.start()

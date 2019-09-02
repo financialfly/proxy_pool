@@ -1,23 +1,24 @@
+import logging
+
 import pymysql
 from pymysql.cursors import Cursor
 from pymysql.err import IntegrityError
 
-from proxypool.proxy import formproxy
-from proxypool.logs import get_logger
 from proxypool.settings import HOST, PORT, PASSWORD, USER, DATABASE
 
 try:
     from proxypool.settings import TABLE
-except NameError:
+except:
     TABLE = None
-except ImportError:
-    TABLE = None
+
+from proxypool.proxy import formproxy
+from proxypool.db.err import ProxyPoolEmpty
+
 
 class MySqlClient(object):
     '''
     状态值
     0未验证，1通过验证未使用，2已使用
-    proxy[0],proxy[1] 对应 type, addr， 如http,127.0.0.1:2555
     '''
     def __init__(self):
         self.db_params = dict(
@@ -27,33 +28,28 @@ class MySqlClient(object):
             password=PASSWORD,
             database=DATABASE
         )
-        self.logger = get_logger('db')
-        self.conn = self.get_conn()
-
+        self.logger = logging.getLogger('ProxyPool-MysqlClient')
+        self.conn = self.init_conn()
         if not TABLE:
             self.create_table()
         else:
             self.table = TABLE
 
+    def init_conn(self):
+        """
+        :return: mysql connection
+        """
+        return pymysql.connect(**self.db_params)
+
     def create_table(self):
-        query = '''
-            CREATE TABLE IF NOT EXISTS proxies(
+        self.table = 'proxypool'
+        query = f'''
+            CREATE TABLE IF NOT EXISTS {self.table}(
             proxy VARCHAR(50) PRIMARY KEY, 
             status TINYINT NOT NULL DEFAULT 0 COMMENT '0未验证，1通过验证，2未通过验证，3已使用', 
             type VARCHAR(20) COMMENT 'http/https',
             INDEX proxy_index (proxy))'''
         self.exec(query)
-        self.table = 'proxies'
-
-    def get_conn(self, **kwargs):
-        self.logger.debug('Getting connection from MySql...')
-        retry_times = 3
-        while retry_times > 0:
-            try:
-                return pymysql.connect(**self.db_params, **kwargs)
-            except pymysql.err.OperationalError as e:
-                print(e)
-                retry_times -= 1
 
     def close(self):
         self.conn.close()
@@ -66,83 +62,37 @@ class MySqlClient(object):
                 return c
         self.conn.commit()
 
-    def runQuery(self, query, cursor=Cursor):
+    def runquery(self, query, cursor=Cursor):
         with self.conn.cursor(cursor) as c:
             c.execute(query)
             return c.fetchall()
 
-    def get(self, iptype=None):
-        '''获取一条代理数据'''
-        proxy = self._get(status=1, iptype=iptype)[0]
-        return formproxy(proxy[0], proxy[1])
-
-    def get_raw(self, count=1, iptype=None):
-        '''获取没有经过验证的代理'''
-        proxies = self._get(status=0, count=count, iptype=iptype)
-        if proxies:
-            proxies = [formproxy(p[0], p[1]) for p in proxies]
-            return proxies[0] if count == 1 else proxies
+    def get(self, status=1, iptype=None):
+        '''获取代理'''
+        query = f'SELECT type, proxy FROM {self.table} WHERE status={status}'
+        if iptype:
+            query += f' AND type="{iptype}"'
+        query += ' LIMIT 1'
+        proxy = self.runquery(query)
+        if proxy:
+            t, addr = proxy[0]
+            return formproxy(t, addr)
 
     def pop(self, iptype=None):
         '''获取一条代理，并从数据库删除'''
-        try:
-            proxy = self._get(status=1, iptype=iptype)[0]
-        except IndexError:
-            return
-        proxy = formproxy(proxy[0], proxy[1])
+        proxy = self.get(iptype=iptype)
+        if not proxy:
+            raise ProxyPoolEmpty()
         self.delete(proxy)
         return proxy
 
-    def update_useful(self, proxy):
-        '''更新经过验证的代理状态'''
-        return self.update(proxy, status=1)
-
     def put(self, proxy):
         '''把代理放进数据库'''
-        query = 'INSERT INTO %s (type, proxy) VALUES("%s", "%s")' % (self.table, proxy.type, proxy.addr)
+        query = f'INSERT INTO {self.table} (type, proxy, status) VALUES("{proxy.type}", "{proxy.addr}", "{proxy.status}")'
         try:
             self.exec(query)
         except IntegrityError:
             self.logger.debug('Proxy already exist')
-
-    def put_many(self, proxies):
-        '''把一些代理放进代理池'''
-        query = 'INSERT IGNORE INTO %s (type, proxy) VALUES' % self.table
-        for proxy in proxies:
-            value = '("%s", "%s"), ' % (proxy.type, proxy.addr)
-            query += value
-        # 有的时候代理为空，会报错
-        try:
-            self.exec(query[:-2])
-        except:
-            pass
-
-    def _get(self, status, count=1, iptype=None):
-        '''获取代理'''
-        query = 'SELECT type, proxy FROM %s WHERE status=%d LIMIT %d' % (self.table, status, count)
-        if iptype:
-            query = 'SELECT type, proxy FROM %s WHERE status=%d AND type="%s" LIMIT %d' %(self.table, status, iptype, count)
-        return self.runQuery(query)
-
-    def count(self, query_checked=True):
-        '''
-        因为同一连接接连查询返回的结果是一样的，所以需要创建一个新连接用来查询
-        '''
-        query = 'SELECT COUNT(proxy) FROM %s WHERE status=%d' # % (self.table, status)
-        new_conn = self.get_conn()
-        with new_conn.cursor() as cursor:
-            # 未验证的代理数量
-            cursor.execute(query % (self.table, 0))
-            uncheck_count = cursor.fetchone()[0]
-            # 已经验证的代理数量
-            if query_checked:
-                cursor.execute(query % (self.table, 1))
-                checked_count = cursor.fetchone()[0]
-                new_conn.close()
-                return uncheck_count, checked_count
-            else:
-                new_conn.close()
-                return uncheck_count
 
     def update(self, proxy, status):
         '''更新'''
@@ -166,3 +116,13 @@ class MySqlClient(object):
         query = 'TRUNCATE TABLE %s' % self.table
         self.exec(query)
         self.logger.info('All proxies were deleted.')
+
+    def __len__(self):
+        conn = self.init_conn()
+        try:
+            with conn.cursor() as cur:
+                query = f'SELECT COUNT(proxy) FROM {self.table} WHERE status={1}'
+                cur.execute(query)
+                return cur.fetchone()[0]
+        finally:
+            conn.close()
