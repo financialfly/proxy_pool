@@ -9,7 +9,7 @@ logger = logging.getLogger('ProxyPool-Crawler')
 logging.basicConfig(level=logging.INFO)
 
 
-class RequestPoxy:
+class ProxyCrawler:
 
     url_with_parse_func = [
         ('https://www.kuaidaili.com/free/inha/1/', 'parse_kuaidaili'),
@@ -113,5 +113,5 @@ class RequestPoxy:
 
 
 if __name__ == '__main__':
-    r = RequestPoxy()
+    r = ProxyCrawler()
     r.start_request()

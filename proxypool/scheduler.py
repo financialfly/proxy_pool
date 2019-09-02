@@ -1,16 +1,16 @@
 import time
 from multiprocessing import Process
 
-from proxypool.crawler import RequestPoxy
-from proxypool.settings import LOWER_LIMIT, UPPER_LIMIT, INTERVAL_TIME
+from proxypool.crawler import ProxyCrawler
+from proxypool.settings import CHECKED_INTERVAL
 from proxypool.web import ProxyWebApp
 
 
 def request_proxy():
-    r = RequestPoxy()
+    r = ProxyCrawler()
     while True:
         r.start_request()
-        time.sleep(INTERVAL_TIME)
+        time.sleep(CHECKED_INTERVAL)
 
 
 def run_web():
